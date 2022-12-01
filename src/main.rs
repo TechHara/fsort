@@ -6,7 +6,7 @@ use std::process::exit;
 #[derive(Parser)]
 #[command(name = "fsort")]
 #[command(author = "TechHara")]
-#[command(version = "0.1")]
+#[command(version = "0.2.0")]
 #[command(about = "Sort fields within each line", long_about = None)]
 struct Cli {
     /// Field delimiter character
@@ -28,6 +28,9 @@ struct Cli {
     /// Check each line is sorted
     #[arg(short, long, action = ArgAction::SetTrue)]
     check: bool,
+    /// Print only unique fields per line
+    #[arg(short, long, action = ArgAction::SetTrue)]
+    unique: bool,
     /// Input file
     input: Option<String>,
     /// Output file
@@ -63,10 +66,10 @@ fn main() -> std::io::Result<()> {
 
         if cli.check {
             let sorted = match cli.reverse {
-                false => is_sorted_by(fields, compare),
-                true => is_sorted_by(fields, |a, b| compare(b,a)),
+                false => is_sorted_by(&fields, compare),
+                true => is_sorted_by(&fields, |a, b| compare(b, a)),
             };
-            if !sorted {
+            if !sorted || cli.unique && !is_unique(&fields) {
                 eprintln!("not sorted at line #{}", linenum);
                 exit(255);
             }
@@ -75,7 +78,11 @@ fn main() -> std::io::Result<()> {
                 false => fields.sort(),
                 true => fields.sort_by(|a, b| compare(b, a)),
             }
-    
+
+            if cli.unique {
+                fields.dedup();
+            }
+
             writeln!(ofs, "{}", fields.join(&cli.delim.to_string()))?;
         }
     }
@@ -83,13 +90,25 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 
-fn is_sorted_by<T, F>(xs: Vec<T>, f: F) -> bool
+fn is_sorted_by<T, F>(xs: &[T], f: F) -> bool
 where
     T: std::cmp::Ord,
     F: Fn(&T, &T) -> std::cmp::Ordering,
 {
     for idx in 1..xs.len() {
         if f(&xs[idx - 1], &xs[idx]) == std::cmp::Ordering::Greater {
+            return false;
+        }
+    }
+    true
+}
+
+fn is_unique<T>(xs: &[T]) -> bool
+where
+    T: std::cmp::Ord,
+{
+    for idx in 1..xs.len() {
+        if xs[idx - 1].cmp(&xs[idx]) == std::cmp::Ordering::Equal {
             return false;
         }
     }

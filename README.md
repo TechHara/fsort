@@ -14,6 +14,7 @@ Options:
   -n, --numeric        TODO: Compare according to string numerical value
   -r, --reverse        Reverse the result of comparisons
   -c, --check          Check each line is sorted
+  -u, --unique         Print only unique fields per line
   -h, --help           Print help information
   -V, --version        Print version information
 ```
